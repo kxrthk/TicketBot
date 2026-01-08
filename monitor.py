@@ -6,7 +6,7 @@ from datetime import datetime
 from playwright.sync_api import sync_playwright
 import config
 
-# STOP AFTER 5.5 HOURS (GitHub Limit is 6 Hours)
+# STOP AFTER 5.5 HOURS (GitHub Limit)
 start_timestamp = time.time()
 MAX_RUNTIME = 5.5 * 3600 
 
@@ -17,7 +17,6 @@ def send_alert(message):
     except: pass
 
 def check_times(text):
-    # Logic to find 08:30 AM - 04:00 PM
     matches = re.findall(r"\d{1,2}:\d{2}\s?(?:AM|PM|am|pm)", text)
     for t_str in matches:
         try:
@@ -46,14 +45,19 @@ def run_check():
                     except: pass
                     page.wait_for_timeout(2000)
 
-                # Scan for Theaters
+                # Scan
                 content = page.locator("body").inner_text()
                 for theater in config.PREFERRED_THEATERS:
                     if theater.lower() in content.lower():
-                        # Simple proximity check or full text scan
-                        found_time = check_times(content) # simplified for cloud stability
+                        found_time = check_times(content)
                         if found_time:
-                            send_alert(f"🚨 FOUND! {theater} @ {found_time}\n{site['url']}")
+                            # === 🚨 PANIC ALARM MODE ===
+                            msg = f"🚨 WAKE UP! {theater} @ {found_time}\n{site['url']}"
+                            for _ in range(15): # SEND 15 ALERTS
+                                send_alert(msg)
+                                time.sleep(1)
+                                send_alert("🚨 WAKE UP! TICKETS OPEN!")
+                                time.sleep(1)
                             return True
             except Exception as e:
                 print(f"Error: {e}")
@@ -66,11 +70,10 @@ send_alert("🟢 GitHub Cloud Monitor Started.")
 
 while True:
     if time.time() - start_timestamp > MAX_RUNTIME:
-        send_alert("🔴 5.5 Hours Done. Stopping to save GitHub limit.")
+        send_alert("🔴 5.5 Hours Done. Restarting soon...")
         break
         
     if run_check():
-        send_alert("🚨 TICKETS FOUND! Check Now!")
-        break
+        break # Stop script so alerts don't loop forever after finding
     
     time.sleep(random.randint(30, 60))
