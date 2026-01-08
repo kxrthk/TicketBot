@@ -1,9 +1,7 @@
 name: Ticket Bot
 
 on:
-  workflow_dispatch:  # Allows you to click "Run" manually
-  schedule:
-    - cron: '0 */6 * * *' # Runs automatically every 6 hours
+  workflow_dispatch: # Manual Start
 
 jobs:
   run-bot:
@@ -21,5 +19,19 @@ jobs:
           pip install requests playwright
           playwright install firefox
           
-      - name: Run Monitor
+      - name: Run Monitor (5.5 Hours)
         run: python monitor.py
+        
+      # === THE RESTART MAGIC ===
+      - name: Restart Bot Automatically
+        if: always() # Runs even if code crashes or time ends
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.MY_RESTART_KEY }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'bot.yml',
+              ref: 'main'
+            })
